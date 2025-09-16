@@ -1,1 +1,1 @@
-web: python3 -m app.main_prod
+web: python3 app.py
