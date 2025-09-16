@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merchant Center Monitor Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .card h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        .status-healthy {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-alert {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-error {
+            background-color: #f5c6cb;
+            color: #721c24;
+        }
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .metric:last-child {
+            border-bottom: none;
+        }
+        
+        .metric-label {
+            font-weight: 500;
+        }
+        
+        .metric-value {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
+        .metric-approved { color: #28a745; }
+        .metric-pending { color: #ffc107; }
+        .metric-disapproved { color: #dc3545; }
+        .metric-limited { color: #fd7e14; }
+        .metric-suspended { color: #6f42c1; }
+        
+        .chart-container {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .chart-container h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #1e7e34;
+        }
+        
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+        
+        .alert-item {
+            background: #f8f9fa;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 0 5px 5px 0;
+        }
+        
+        .alert-time {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+        
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .config-item {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        
+        .config-label {
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .config-value {
+            color: #007bff;
+            font-weight: bold;
+        }
+        
+        .refresh-indicator {
+            display: none;
+            color: #007bff;
+            font-size: 0.9em;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Merchant Center Monitor</h1>
+            <p>Real-time monitoring of product statuses and alerts</p>
+        </div>
+        
+        <div class="actions">
+            <button class="btn btn-primary" onclick="runCheck()">
+                🔄 Run Check Now
+            </button>
+            <a href="/status" class="btn btn-secondary" target="_blank">
+                📈 API Status
+            </a>
+            <a href="/alerts/history" class="btn btn-secondary" target="_blank">
+                📋 Alert History
+            </a>
+            <span class="refresh-indicator" id="refreshIndicator">Refreshing...</span>
+        </div>
+        
+        <div class="grid">
+            <div class="card">
+                <h3>📊 Current Status</h3>
+                <div class="metric">
+                    <span class="metric-label">Status:</span>
+                    <span class="status-indicator status-{{ status.status }}" id="statusIndicator">
+                        {{ status.status.upper() }}
+                    </span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Last Check:</span>
+                    <span class="metric-value" id="lastCheck">
+                        {% if status.last_check %}
+                            {{ status.last_check[:19].replace('T', ' ') }}
+                        {% else %}
+                            Never
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Country:</span>
+                    <span class="metric-value">{{ status.country or 'N/A' }}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Context:</span>
+                    <span class="metric-value">{{ status.reporting_context or 'N/A' }}</span>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>📈 Product Counts</h3>
+                {% if status.totals %}
+                <div class="metric">
+                    <span class="metric-label">✅ Approved:</span>
+                    <span class="metric-value metric-approved">{{ "{:,}".format(status.totals.approved) }}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">⏳ Pending:</span>
+                    <span class="metric-value metric-pending">{{ "{:,}".format(status.totals.pending) }}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">❌ Disapproved:</span>
+                    <span class="metric-value metric-disapproved">{{ "{:,}".format(status.totals.disapproved) }}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">⚠️ Limited:</span>
+                    <span class="metric-value metric-limited">{{ "{:,}".format(status.totals.limited) }}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">🚫 Suspended:</span>
+                    <span class="metric-value metric-suspended">{{ "{:,}".format(status.totals.suspended) }}</span>
+                </div>
+                {% else %}
+                <p>No data available</p>
+                {% endif %}
+            </div>
+            
+            <div class="card">
+                <h3>⚙️ Configuration</h3>
+                <div class="config-grid">
+                    <div class="config-item">
+                        <div class="config-label">Country</div>
+                        <div class="config-value">{{ settings.country }}</div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label">Context</div>
+                        <div class="config-value">{{ settings.reporting_context }}</div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label">Abs Threshold</div>
+                        <div class="config-value">{{ settings.threshold_abs }}</div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label">Delta Threshold</div>
+                        <div class="config-value">{{ settings.threshold_delta }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <h3>📊 24h Trend - Problematic Products</h3>
+            <canvas id="trendChart" width="400" height="200"></canvas>
+        </div>
+        
+        <div class="card">
+            <h3>🚨 Recent Alerts</h3>
+            {% if recent_alerts %}
+                {% for alert in recent_alerts %}
+                <div class="alert-item">
+                    <div class="alert-time">{{ alert.timestamp[:19].replace('T', ' ') }}</div>
+                    <div>
+                        <strong>Disapproved:</strong> {{ "{:,}".format(alert.totals.disapproved) }} 
+                        (Δ {{ alert.delta_disapproved }}) |
+                        <strong>Limited:</strong> {{ "{:,}".format(alert.totals.limited) }} |
+                        <strong>Suspended:</strong> {{ "{:,}".format(alert.totals.suspended) }}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>No recent alerts</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <script>
+        // Chart.js configuration
+        const chartData = {{ chart_data | tojson }};
+        
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        const trendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartData.map(item => new Date(item.timestamp).toLocaleTimeString()),
+                datasets: [
+                    {
+                        label: 'Disapproved',
+                        data: chartData.map(item => item.disapproved),
+                        borderColor: '#dc3545',
+                        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Limited',
+                        data: chartData.map(item => item.limited),
+                        borderColor: '#fd7e14',
+                        backgroundColor: 'rgba(253, 126, 20, 0.1)',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Suspended',
+                        data: chartData.map(item => item.suspended),
+                        borderColor: '#6f42c1',
+                        backgroundColor: 'rgba(111, 66, 193, 0.1)',
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Auto-refresh every 5 minutes
+        setInterval(() => {
+            location.reload();
+        }, 300000);
+        
+        // Manual check function
+        async function runCheck() {
+            const indicator = document.getElementById('refreshIndicator');
+            indicator.style.display = 'inline';
+            
+            try {
+                const response = await fetch('/tasks/run', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    // Refresh the page after successful check
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    alert('Error running check: ' + response.statusText);
+                }
+            } catch (error) {
+                alert('Error running check: ' + error.message);
+            } finally {
+                indicator.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
